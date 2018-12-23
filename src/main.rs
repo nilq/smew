@@ -15,11 +15,11 @@ player:
       scale-x: 10
       scale-y: 10
 
-  when - awake:
+  when-awake:
     print "hello world"
-    move to  100 100
+    move-to 100, 200 - 100
 
-  when press space:
+  when-press-space:
     print "ouch holy fuck"
   "#;
 

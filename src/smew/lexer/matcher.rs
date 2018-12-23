@@ -264,7 +264,7 @@ impl<'t> Matcher<'t> for IdentifierMatcher {
       return Ok(None)
     }
 
-    let accum = tokenizer.collect_while(|c| c.is_alphanumeric() || "_ -!?".contains(c));
+    let accum = tokenizer.collect_while(|c| c.is_alphanumeric() || "_-!?".contains(c));
 
     if accum.is_empty() {
       Ok(None)
