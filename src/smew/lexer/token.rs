@@ -4,13 +4,14 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
   Indent,
-  Name,
+  Identifier,
   Number,
   Keyword,
   Str,
   Symbol,
   Operator,
   Bool,
+  Whitespace,
   EOL,
   EOF,
 }
@@ -21,13 +22,14 @@ impl fmt::Display for TokenType {
 
     match *self {
       Indent     => write!(f, "Indent"),
-      Name       => write!(f, "Name"),
+      Identifier => write!(f, "Name"),
       Number     => write!(f, "Number"),
-      Str        => write!(f, "Str"),
+      Str        => write!(f, "Text"),
       Keyword    => write!(f, "Keyword"),
       Bool       => write!(f, "Bool"),
       Symbol     => write!(f, "Symbol"),
       Operator   => write!(f, "Operator"),
+      Whitespace => write!(f, "Whitespace"),
       EOL        => write!(f, "EOL"),
       EOF        => write!(f, "EOF"),
     }
