@@ -35,21 +35,7 @@ pub struct CommentMatcher;
 
 impl<'t> Matcher<'t> for CommentMatcher {
   fn try_match(&self, tokenizer: &mut Tokenizer<'t>) -> Result<Option<Token>, ()> {
-    if tokenizer.peek_range(3).unwrap_or_else(String::new) == "---" {
-      tokenizer.advance_n(3);
-
-      while !tokenizer.end() {
-        if tokenizer.peek_range(3).unwrap_or_else(String::new) == "---" {
-          tokenizer.advance_n(3);
-          break
-        }
-
-        tokenizer.advance()
-      }
-
-      Ok(Some(token!(tokenizer, EOL, "\n".into())))
-
-    } else if tokenizer.peek_range(2).unwrap_or_else(String::new) == "--" {
+    if tokenizer.peek_range(1).unwrap_or_else(String::new) == "#" {
       while !tokenizer.end() && tokenizer.peek() != Some('\n') {
         tokenizer.advance()
       }
@@ -260,7 +246,7 @@ pub struct IdentifierMatcher;
 
 impl<'t> Matcher<'t> for IdentifierMatcher {
   fn try_match(&self, tokenizer: &mut Tokenizer<'t>) -> Result<Option<Token>, ()> {
-    if !tokenizer.peek().unwrap().is_alphabetic() && !(tokenizer.peek().unwrap() == '_') {
+    if !tokenizer.peek().unwrap().is_alphabetic() {
       return Ok(None)
     }
 
@@ -286,7 +272,9 @@ impl<'t> Matcher<'t> for NumberLiteralMatcher {
       accum.push(curr)
     } else if curr == '.' {
       accum.push_str("0.")
-    } else {
+    } else if curr == '-' {
+      accum.push('-')
+    }  else {
       return Ok(None)
     }
 
@@ -313,12 +301,14 @@ impl<'t> Matcher<'t> for NumberLiteralMatcher {
       }
     }
 
-    if &accum == "0." {
+    if ["-", "-0.", "-.", "0."].contains(&accum.as_str()) {
       Ok(None)
     } else {
-      let literal: String = match accum.parse::<i64>() {
+      println!("heyy {:?}", accum);
+
+      let literal: String = match accum.parse::<f64>() {
         Ok(result) => result.to_string(),
-        Err(error) => panic!("unable to parse number: {}", error)
+        Err(error) => panic!("unable to parse number `{}`: {}", accum, error)
       };
 
       Ok(Some(token!(tokenizer, Number, literal)))

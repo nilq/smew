@@ -33,7 +33,7 @@ impl<'l> Lexer<'l> {
     lexer.matchers.push(
       Rc::new(
         KeyMatcher::new(Keyword, &[
-          ">>", "<<", "><", "=>", "->", "!"
+          "def", "->",
         ])
       )
     );
@@ -41,12 +41,6 @@ impl<'l> Lexer<'l> {
     lexer.matchers.push(
       Rc::new(
         KeyMatcher::new(Bool, &["false", "true"])
-      )
-    );
-
-    lexer.matchers.push(
-      Rc::new(
-        ConstantStringMatcher::new(Symbol, &[".."])
       )
     );
 
