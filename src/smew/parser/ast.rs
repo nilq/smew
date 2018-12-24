@@ -8,6 +8,7 @@ pub enum StatementNode {
   Expression(Expression),
   Assignment(Expression, Expression),
   Return(Option<Rc<Expression>>),
+  Record(String, Vec<Statement>),
 }
 
 #[derive(Debug, Clone, PartialEq)]

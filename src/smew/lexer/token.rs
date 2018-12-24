@@ -3,7 +3,6 @@ use std::fmt;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
-  Indent,
   Identifier,
   Number,
   Keyword,
@@ -21,7 +20,6 @@ impl fmt::Display for TokenType {
     use self::TokenType::*;
 
     match *self {
-      Indent     => write!(f, "Indent"),
       Identifier => write!(f, "Name"),
       Number     => write!(f, "Number"),
       Str        => write!(f, "Text"),

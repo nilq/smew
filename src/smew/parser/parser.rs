@@ -7,6 +7,7 @@ pub struct Parser<'p> {
   index:  usize,
   tokens: Vec<Token>,
   source: &'p Source,
+  indent: usize,
 }
 
 impl<'p> Parser<'p> {
@@ -14,7 +15,8 @@ impl<'p> Parser<'p> {
     Parser {
       tokens,
       source,
-      index: 0,
+      index:  0,
+      indent: 0,
     }
   }
 
@@ -42,6 +44,36 @@ impl<'p> Parser<'p> {
     let position = self.current_position();
 
     let statement = match self.current_type() {
+      Identifier => {
+        let backup_index = self.index;
+        let name = self.eat()?;
+
+        if self.current_lexeme() == ":" {
+          self.next()?;
+          self.next_newline()?;
+
+          let body = self.parse_body()?;
+
+          Statement::new(
+            StatementNode::Record(
+              name,
+              body,
+            ),
+            position
+          )
+        } else {
+          self.index = backup_index;
+
+          let expression = self.parse_expression()?;
+          let position   = expression.pos.clone();
+
+          Statement::new(
+            StatementNode::Expression(expression),
+            position,
+          )
+        }
+      },
+      
       _ => {
         let expression = self.parse_expression()?;
         let position   = expression.pos.clone();
@@ -65,6 +97,26 @@ impl<'p> Parser<'p> {
     self.new_line()?;
 
     Ok(statement)
+  }
+
+
+
+  fn parse_body(&mut self) -> Result<Vec<Statement>, ()> {
+    self.indent = self.get_indent();
+
+    let mut stack = Vec::new();
+
+    while !self.is_dedent() && self.remaining() > 1 {
+      let statement = self.parse_statement()?;
+
+      stack.push(statement)
+    }
+
+    println!("{} > {}", self.indent, self.get_indent());
+
+    println!("{:#?}", stack);
+
+    Ok(stack)
   }
 
 
@@ -273,6 +325,16 @@ impl<'p> Parser<'p> {
     }
 
     Ok(())
+  }
+
+
+
+  fn get_indent(&self) -> usize {
+    self.current().slice.0
+  }
+
+  fn is_dedent(&self) -> bool {
+    self.get_indent() < self.indent
   }
 
 

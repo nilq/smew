@@ -8,9 +8,14 @@ use self::smew::parser::*;
 
 fn main() {
   let test = r#"
-# Literals
+player:
+  foo
+  bar
 
-hello-world - -10
+enemy:
+  hey
+  bye
+  bye
   "#;
 
   let source = Source::from("<main>", test.lines().map(|x| x.into()).collect::<Vec<String>>());
