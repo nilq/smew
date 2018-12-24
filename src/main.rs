@@ -14,7 +14,11 @@ player:
 
 enemy:
   hey
-  bye
+  
+  head:
+    eyes
+    a-nose
+  
   bye
   "#;
 

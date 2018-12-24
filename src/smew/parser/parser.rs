@@ -102,7 +102,8 @@ impl<'p> Parser<'p> {
 
 
   fn parse_body(&mut self) -> Result<Vec<Statement>, ()> {
-    self.indent = self.get_indent();
+    let backup_indent = self.indent;
+    self.indent       = self.get_indent();
 
     let mut stack = Vec::new();
 
@@ -112,9 +113,7 @@ impl<'p> Parser<'p> {
       stack.push(statement)
     }
 
-    println!("{} > {}", self.indent, self.get_indent());
-
-    println!("{:#?}", stack);
+    self.indent = backup_indent;
 
     Ok(stack)
   }
