@@ -9,6 +9,8 @@ use self::smew::parser::*;
 
 fn main() {
   let test = r#"
+a = 100
+
 box:
   size:
     width:

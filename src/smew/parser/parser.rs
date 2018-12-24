@@ -73,6 +73,11 @@ impl<'p> Parser<'p> {
           );
 
           return Ok(record)
+        } else if self.current_lexeme() == "=" {
+          self.index = backup_index;
+
+          self.parse_assignment()?
+
         } else {
           self.index = backup_index;
 
@@ -86,29 +91,35 @@ impl<'p> Parser<'p> {
         }
       },
       
-      _ => {
-        let expression = self.parse_expression()?;
-        let position   = expression.pos.clone();
-
-        if self.current_lexeme() == "=" {
-          self.next()?;
-
-          Statement::new(
-            StatementNode::Assignment(expression, self.parse_expression()?),
-            position
-          )
-        } else {
-          Statement::new(
-            StatementNode::Expression(expression),
-            position,
-          )
-        }
-      },
+      _ => self.parse_assignment()?,
     };
 
     self.new_line()?;
 
     Ok(statement)
+  }
+
+
+
+  fn parse_assignment(&mut self) -> Result<Statement, ()> {
+    let expression = self.parse_expression()?;
+    let position   = expression.pos.clone();
+
+    let result = if self.current_lexeme() == "=" {
+      self.next()?;
+
+      Statement::new(
+        StatementNode::Assignment(expression, self.parse_expression()?),
+        position
+      )
+    } else {
+      Statement::new(
+        StatementNode::Expression(expression),
+        position,
+      )
+    };
+
+    Ok(result)
   }
 
 
