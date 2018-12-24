@@ -1,4 +1,5 @@
 extern crate colored;
+extern crate backtrace;
 
 mod smew;
 
@@ -8,9 +9,17 @@ use self::smew::parser::*;
 
 fn main() {
   let test = r#"
-player:
-  foo
-  bar
+box:
+  size:
+    width:
+      32
+    
+    height:
+      32
+
+player -> box:
+  area:
+    size.width * size.height
 
 enemy:
   hey

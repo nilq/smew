@@ -48,19 +48,31 @@ impl<'p> Parser<'p> {
         let backup_index = self.index;
         let name = self.eat()?;
 
+        let mut parents = Vec::new();
+
+        while self.current_lexeme() == "->" {
+          self.next()?;
+
+          parents.push(self.parse_expression()?)
+        }
+
         if self.current_lexeme() == ":" {
           self.next()?;
+          self.new_line()?;
           self.next_newline()?;
 
           let body = self.parse_body()?;
 
-          Statement::new(
+          let record = Statement::new(
             StatementNode::Record(
               name,
+              parents,
               body,
             ),
             position
-          )
+          );
+
+          return Ok(record)
         } else {
           self.index = backup_index;
 
@@ -107,7 +119,7 @@ impl<'p> Parser<'p> {
 
     let mut stack = Vec::new();
 
-    while !self.is_dedent() && self.remaining() > 1 {
+    while !self.is_dedent() && self.remaining() > 0 {
       let statement = self.parse_statement()?;
 
       stack.push(statement)
@@ -341,6 +353,7 @@ impl<'p> Parser<'p> {
   fn next(&mut self) -> Result<(), ()> {
     if self.index <= self.tokens.len() {
       self.index += 1;
+
       Ok(())
     } else {
       Err(

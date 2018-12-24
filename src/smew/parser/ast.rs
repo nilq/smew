@@ -8,7 +8,7 @@ pub enum StatementNode {
   Expression(Expression),
   Assignment(Expression, Expression),
   Return(Option<Rc<Expression>>),
-  Record(String, Vec<Statement>),
+  Record(String, Vec<Expression>, Vec<Statement>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -63,7 +63,7 @@ impl Expression {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Operator {
-  Add, Sub, Mul, Div, Mod, Pow, Concat, Eq, Lt, Gt, NEq, LtEq, GtEq, Or, And,
+  Add, Sub, Mul, Div, Mod, Pow, Concat, Eq, Lt, Gt, NEq, LtEq, GtEq, Or, And, Index,
 }
 
 impl Operator {
@@ -86,6 +86,7 @@ impl Operator {
       "/"   => (Div,    3),
       "%"   => (Mod,    3),
       "^"   => (Pow,    4),
+      "."   => (Index,  5),
       _     => return None,
     };
 
@@ -96,6 +97,7 @@ impl Operator {
     use self::Operator::*;
 
     match *self {
+      Index  => ".",
       Add    => "+",
       Sub    => "-",
       Concat => "++",

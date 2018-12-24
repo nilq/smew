@@ -304,8 +304,6 @@ impl<'t> Matcher<'t> for NumberLiteralMatcher {
     if ["-", "-0.", "-.", "0."].contains(&accum.as_str()) {
       Ok(None)
     } else {
-      println!("heyy {:?}", accum);
-
       let literal: String = match accum.parse::<f64>() {
         Ok(result) => result.to_string(),
         Err(error) => panic!("unable to parse number `{}`: {}", accum, error)

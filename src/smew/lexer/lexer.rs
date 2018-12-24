@@ -49,7 +49,7 @@ impl<'l> Lexer<'l> {
 
     lexer.matchers.push(
       Rc::new(
-        ConstantStringMatcher::new(Operator, &["^", "++", "+", "-", "*", "/", "%", "==", "!=", "<=", ">=", "<", ">", "or", "and", "not"])
+        ConstantStringMatcher::new(Operator, &[".", "^", "++", "+", "-", "*", "/", "%", "==", "!=", "<=", ">=", "<", ">", "or", "and", "not"])
       )
     );
 
