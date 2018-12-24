@@ -9,28 +9,13 @@ use self::smew::parser::*;
 
 fn main() {
   let test = r#"
-a = 100
+good:
+  foo
+  bar
 
-box:
-  size:
-    width:
-      32
-    
-    height:
-      32
-
-player -> box:
-  area:
-    size.width * size.height
-
-enemy:
-  hey
-  
-  head:
-    eyes
-    a-nose
-  
-  bye
+bad:
+    foo
+    bar
   "#;
 
   let source = Source::from("<main>", test.lines().map(|x| x.into()).collect::<Vec<String>>());

@@ -7,7 +7,9 @@ pub struct Parser<'p> {
   index:  usize,
   tokens: Vec<Token>,
   source: &'p Source,
-  indent: usize,
+
+  indent_standard: usize,
+  indent:          usize,
 }
 
 impl<'p> Parser<'p> {
@@ -16,6 +18,8 @@ impl<'p> Parser<'p> {
       tokens,
       source,
       index:  0,
+
+      indent_standard: 0,
       indent: 0,
     }
   }
@@ -127,6 +131,20 @@ impl<'p> Parser<'p> {
   fn parse_body(&mut self) -> Result<Vec<Statement>, ()> {
     let backup_indent = self.indent;
     self.indent       = self.get_indent();
+
+    if self.indent_standard == 0 {
+      self.indent_standard = self.indent
+    } else {
+      if self.indent != self.indent_standard {
+        return Err(
+          response!(
+            Wrong(format!("found inconsistently indented token")),
+            self.source.file,
+            self.current_position()
+          )
+        )
+      }
+    }
 
     let mut stack = Vec::new();
 
@@ -247,8 +265,38 @@ impl<'p> Parser<'p> {
     }
 
     match self.current_type() {
-      _ => {
-        Ok(expression)
+      ref current => {
+        if let TokenType::Symbol = current {
+          if self.current_lexeme() != "(" {
+            return Ok(expression)
+          }
+        }
+
+        let mut args = Vec::new();
+
+        while self.current_lexeme() != "\n" {
+          args.push(self.parse_expression()?);
+
+          if self.current_lexeme() != "\n" && self.remaining() > 0 {
+            self.eat_lexeme(",")?;
+          }
+        }
+
+        let position = expression.pos.clone();
+
+        if args.len() > 0 {
+          Ok(
+            Expression::new(
+              ExpressionNode::Call(
+                Rc::new(expression),
+                args,
+              ),
+              self.span_from(position)
+            )
+          )
+        } else {
+          Ok(expression)
+        }
       },
 
       _ => Ok(expression)
