@@ -78,9 +78,12 @@ impl<'p> Parser<'p> {
 
           return Ok(record)
         } else if self.current_lexeme() == "=" {
-          self.index = backup_index;
+          self.next()?;
 
-          self.parse_assignment()?
+          Statement::new(
+            StatementNode::Assignment(name, self.parse_expression()?),
+            position
+          )
 
         } else {
           self.index = backup_index;
@@ -95,35 +98,20 @@ impl<'p> Parser<'p> {
         }
       },
       
-      _ => self.parse_assignment()?,
+      _ => {
+        let expression = self.parse_expression()?;
+        let position   = expression.pos.clone();
+
+        Statement::new(
+          StatementNode::Expression(expression),
+          position,
+        )
+      },
     };
 
     self.new_line()?;
 
     Ok(statement)
-  }
-
-
-
-  fn parse_assignment(&mut self) -> Result<Statement, ()> {
-    let expression = self.parse_expression()?;
-    let position   = expression.pos.clone();
-
-    let result = if self.current_lexeme() == "=" {
-      self.next()?;
-
-      Statement::new(
-        StatementNode::Assignment(expression, self.parse_expression()?),
-        position
-      )
-    } else {
-      Statement::new(
-        StatementNode::Expression(expression),
-        position,
-      )
-    };
-
-    Ok(result)
   }
 
 
@@ -135,7 +123,7 @@ impl<'p> Parser<'p> {
     if self.indent_standard == 0 {
       self.indent_standard = self.indent
     } else {
-      if self.indent != self.indent_standard {
+      if self.indent % self.indent_standard != 0 {
         return Err(
           response!(
             Wrong(format!("found inconsistently indented token")),
@@ -233,9 +221,9 @@ impl<'p> Parser<'p> {
             )
           },
 
-          ref symbol => return Err(
+          ref op => return Err(
             response!(
-              Wrong(format!("unexpected operator `{}`", symbol)),
+              Wrong(format!("unexpected operator `{}`", op)),
               self.source.file,
               self.current_position()
             )
@@ -260,6 +248,8 @@ impl<'p> Parser<'p> {
   }
 
   fn parse_postfix(&mut self, expression: Expression) -> Result<Expression, ()> {
+    let backup_index = self.index;
+
     if self.remaining() == 0 {
       return Ok(expression)
     }
@@ -274,11 +264,13 @@ impl<'p> Parser<'p> {
 
         let mut args = Vec::new();
 
-        while self.current_lexeme() != "\n" {
-          args.push(self.parse_expression()?);
+        if ![TokenType::Operator, TokenType::Keyword].contains(&self.current_type()) {
+          while self.current_lexeme() != "\n" {
+            args.push(self.parse_expression()?);
 
-          if self.current_lexeme() != "\n" && self.remaining() > 0 {
-            self.eat_lexeme(",")?;
+            if self.current_lexeme() != "\n" && self.remaining() > 0 {
+              self.eat_lexeme(",")?;
+            }
           }
         }
 
@@ -295,6 +287,8 @@ impl<'p> Parser<'p> {
             )
           )
         } else {
+          self.index = backup_index;
+
           Ok(expression)
         }
       },
@@ -400,11 +394,11 @@ impl<'p> Parser<'p> {
 
 
   fn get_indent(&self) -> usize {
-    self.current().slice.0
+    self.current().slice.0 - 1
   }
 
   fn is_dedent(&self) -> bool {
-    self.get_indent() < self.indent
+    self.get_indent() < self.indent && self.current_lexeme() != "\n"
   }
 
 

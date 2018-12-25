@@ -6,7 +6,7 @@ use super::*;
 #[derive(Debug, Clone, PartialEq)]
 pub enum StatementNode {
   Expression(Expression),
-  Assignment(Expression, Expression),
+  Assignment(String, Expression),
   Return(Option<Rc<Expression>>),
   Record(String, Vec<Expression>, Vec<Statement>),
 }

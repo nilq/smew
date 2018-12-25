@@ -6,16 +6,19 @@ mod smew;
 use self::smew::source::*;
 use self::smew::lexer::*;
 use self::smew::parser::*;
+use self::smew::interpreter::*;
 
 fn main() {
   let test = r#"
-good:
-  foo
-  bar
+a = 100
 
-bad:
-    foo
-    bar
+foo:
+  "/res/sprite.png"
+
+  b = a ++ 100
+
+  baz:
+    b
   "#;
 
   let source = Source::from("<main>", test.lines().map(|x| x.into()).collect::<Vec<String>>());
@@ -35,7 +38,12 @@ bad:
 
   match parser.parse() {
     Ok(ref ast) => {
-      println!("{:#?}", ast)
+
+      let mut interpreter = Interpreter::new(&source);
+
+      match interpreter.evaluate(ast) {
+        scope => println!("{:#?}", scope),
+      }
     },
 
     _ => ()
