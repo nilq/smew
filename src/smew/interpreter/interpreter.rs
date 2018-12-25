@@ -50,12 +50,34 @@ impl<'a> Interpreter<'a> {
         self::StatementNode::Record(ref name, ref parents, ref body) => {
           self.stack.push(Frame::new());
 
+          for parent in parents {
+            let parent_record = self.evaluate_expression(&parent)?;
+
+            if let Object::Record(ref record) = parent_record {
+              for (ref name, ref value) in record.map.iter() {
+                self.set_binding(name, Object::Record((**value).clone()));
+              }
+            } else {
+              return Err(
+                response!(
+                  Wrong("can't inherit from non-record"),
+                  self.source.file,
+                  statement.pos
+                )
+              )
+            }
+          }
+
           let record = self.evaluate(body)?;
 
           map.insert(name.to_owned(), record.clone());
-
-          self.set_binding(name, Object::Record(record));
           self.stack.pop();
+
+          if record.map.len() == 0 && record.content.len() == 1 {
+            self.set_binding(name, record.content[0].clone());
+          } else {
+            self.set_binding(name, Object::Record(record));
+          }
         },
 
         Assignment(ref name, ref right) => {
@@ -81,12 +103,10 @@ impl<'a> Interpreter<'a> {
     use self::ExpressionNode::*;
 
     let result = match expression.node {
-      Number(ref n) => Object::Number(*n),
-      Str(ref n)    => Object::Str(n.clone()),
-      Bool(ref n)   => Object::Bool(*n),
-      Identifier(ref n) => {
-        self.find_name(n)?
-      },
+      Number(ref n)     => Object::Number(*n),
+      Str(ref n)        => Object::Str(n.clone()),
+      Bool(ref n)       => Object::Bool(*n),
+      Identifier(ref n) => self.find_name(n, &expression.pos)?,
 
       Neg(ref expression) => {
         let value = self.evaluate_expression(expression)?;
@@ -125,6 +145,35 @@ impl<'a> Interpreter<'a> {
         use self::Object::*;
 
         let a_value = self.evaluate_expression(&a)?;
+
+        if let Record(ref record) = a_value {
+          if *op == Index {
+            if let ExpressionNode::Identifier(ref index) = b.node {
+              if let Some(ref object) = record.map.get(index) {
+
+                let record = (**object).clone();
+
+                let result = if record.map.len() == 0 && record.content.len() == 1 {
+                  record.content[0].clone()
+                } else {
+                  Object::Record(record)
+                };
+
+                return Ok(result)
+              
+              } else {
+                return Err(
+                  response!(
+                    Wrong(format!("no such field `{}` on record", index)),
+                    self.source.file,
+                    expression.pos
+                  )
+                )
+              }
+            }
+          }
+        }
+
         let b_value = self.evaluate_expression(&b)?;
 
         match (&a_value, op, &b_value) {
@@ -143,20 +192,6 @@ impl<'a> Interpreter<'a> {
           (ref a, Eq, ref b)   => Object::Bool(a == b),
           (ref a, NEq, ref b)  => Object::Bool(a != b),
 
-          (&Record(ref record), Index, &Str(ref index)) => {
-            if let Some(ref object) = record.map.get(index) {
-              Object::Record((**object).clone())
-            } else {
-              return Err(
-                response!(
-                  Wrong(format!("no such field `{}` on record", index)),
-                  self.source.file,
-                  expression.pos
-                )
-              )
-            }
-          },
-
           (ref a, Concat, ref b) => {
             
             if let Some(ref a) = a.to_str_object() {
@@ -167,7 +202,7 @@ impl<'a> Interpreter<'a> {
 
             return Err(
               response!(
-                Wrong(format!("can't perform operation `{:?}{}{:?}`", a, op, b)),
+                Wrong(format!("can't perform operation `{:?}{}{:?}`", a_value, op, b_value)),
                 self.source.file,
                 expression.pos
               )
@@ -176,7 +211,7 @@ impl<'a> Interpreter<'a> {
 
           _ => return Err(
             response!(
-              Wrong(format!("can't perform operation `{:?}{}{:?}`", a, op, b)),
+              Wrong(format!("can't perform operation `{:?}{}{:?}`", a_value, op, b_value)),
               self.source.file,
               expression.pos
 
@@ -187,6 +222,12 @@ impl<'a> Interpreter<'a> {
 
       _ => Object::Nil,
     };
+
+    if let Object::Record(ref record) = result {
+      if record.map.len() == 0 && record.content.len() == 1 {
+        return Ok(record.content[0].clone())
+      }
+    }
 
     Ok(result)
   }
@@ -204,10 +245,17 @@ impl<'a> Interpreter<'a> {
 
 
   fn set_binding(&mut self, name: &String, value: Object) {
+    use backtrace::Backtrace;
+    let bt = Backtrace::new();
+
+    if name == "width" {
+      println!("{:?}", bt);
+    }
+
     self.current_frame_mut().set_name(name, value)
   }
 
-  fn find_name(&self, name: &str) -> Result<Object, ()> {
+  fn find_name(&self, name: &str, pos: &Pos) -> Result<Object, ()> {
     let mut parent_offset = self.stack.len() - 1;
     
     loop {
@@ -218,7 +266,8 @@ impl<'a> Interpreter<'a> {
           return Err(
             response!(
               Wrong(format!("no such thing as `{}`", name)),
-              self.source.file
+              self.source.file,
+              pos
             )
           )
         }

@@ -62,10 +62,25 @@ impl<'p> Parser<'p> {
 
         if self.current_lexeme() == ":" {
           self.next()?;
-          self.new_line()?;
-          self.next_newline()?;
 
-          let body = self.parse_body()?;
+          let body = if self.current_lexeme() == "\n" {
+            self.new_line()?;
+            self.next_newline()?;
+
+            self.parse_body()?
+          } else {
+            let expression = self.parse_expression()?;
+            let position   = expression.pos.clone();
+
+            vec!(
+              Statement::new(
+                StatementNode::Expression(
+                  expression
+                ),
+                position
+              )
+            )
+          };
 
           let record = Statement::new(
             StatementNode::Record(
@@ -138,6 +153,8 @@ impl<'p> Parser<'p> {
 
     while !self.is_dedent() && self.remaining() > 0 {
       let statement = self.parse_statement()?;
+
+      self.next_newline()?;
 
       stack.push(statement)
     }
@@ -257,40 +274,41 @@ impl<'p> Parser<'p> {
     match self.current_type() {
       ref current => {
         if let TokenType::Symbol = current {
-          if self.current_lexeme() != "(" {
-            return Ok(expression)
-          }
-        }
+          if self.current_lexeme() == "(" {
+            self.next()?;
+            self.next_newline()?;;
 
-        let mut args = Vec::new();
+            let mut args = Vec::new();
 
-        if ![TokenType::Operator, TokenType::Keyword].contains(&self.current_type()) {
-          while self.current_lexeme() != "\n" {
-            args.push(self.parse_expression()?);
+            if ![TokenType::Operator, TokenType::Keyword].contains(&self.current_type()) {
+              while !["\n", ")"].contains(&self.current_lexeme().as_str()) {
+                args.push(self.parse_expression()?);
 
-            if self.current_lexeme() != "\n" && self.remaining() > 0 {
-              self.eat_lexeme(",")?;
+                if !["\n", ")"].contains(&self.current_lexeme().as_str()) && self.remaining() > 0 {
+                  self.eat_lexeme(",")?;
+                  self.next_newline()?;
+                }
+              }
             }
+
+            self.next_newline()?;
+            self.eat_lexeme(")")?;
+
+            let position = expression.pos.clone();
+
+            return Ok(
+              Expression::new(
+                ExpressionNode::Call(
+                  Rc::new(expression),
+                  args,
+                ),
+                self.span_from(position)
+              )
+            )
           }
         }
 
-        let position = expression.pos.clone();
-
-        if args.len() > 0 {
-          Ok(
-            Expression::new(
-              ExpressionNode::Call(
-                Rc::new(expression),
-                args,
-              ),
-              self.span_from(position)
-            )
-          )
-        } else {
-          self.index = backup_index;
-
-          Ok(expression)
-        }
+        Ok(expression)
       },
 
       _ => Ok(expression)
@@ -405,6 +423,13 @@ impl<'p> Parser<'p> {
 
   fn next(&mut self) -> Result<(), ()> {
     if self.index <= self.tokens.len() {
+      use backtrace::Backtrace;
+
+      let bt = Backtrace::new();
+
+      if self.current_lexeme() == "fazoo" {
+        println!("{:?}", bt);
+      }
       self.index += 1;
 
       Ok(())
@@ -463,7 +488,7 @@ impl<'p> Parser<'p> {
     } else {
       Err(
         response!(
-          Wrong(format!("expected `{}`, found `{}`", lexeme, self.current_lexeme())),
+          Wrong(format!("expected `{}` but found `{}`", lexeme, self.current_lexeme())),
           self.source.file,
           self.current_position()
         )
@@ -480,7 +505,7 @@ impl<'p> Parser<'p> {
     } else {
       Err(
         response!(
-          Wrong(format!("expected `{}`, found `{}`", token_type, self.current_type())),
+          Wrong(format!("expected `{}` but found `{}`", token_type, self.current_type())),
           self.source.file,
           self.current_position()
         )
@@ -502,7 +527,7 @@ impl<'p> Parser<'p> {
     } else {
       Err(
         response!(
-          Wrong(format!("expected `{}`, found `{}`", token_type, self.current_type())),
+          Wrong(format!("expected `{}` but found `{}`", token_type, self.current_type())),
           self.source.file
         )
       )
@@ -515,7 +540,7 @@ impl<'p> Parser<'p> {
     } else {
       Err(
         response!(
-          Wrong(format!("expected `{}`, found `{}`", lexeme, self.current_lexeme())),
+          Wrong(format!("expected `{}` but found `{}`", lexeme, self.current_lexeme())),
           self.source.file
         )
       )

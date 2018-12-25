@@ -10,15 +10,15 @@ use self::smew::interpreter::*;
 
 fn main() {
   let test = r#"
-a = 100
+rectangle:
+  width:  200
+  height: 100
 
-foo:
-  "/res/sprite.png"
+vector2:
+  x: 100
+  y: 100
 
-  b = a ++ 100
-
-  baz:
-    b
+area: rectangle.width * rectangle.height
   "#;
 
   let source = Source::from("<main>", test.lines().map(|x| x.into()).collect::<Vec<String>>());
