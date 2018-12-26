@@ -24,16 +24,20 @@ impl Frame {
 }
 
 
+pub type ForeignFunction = fn(&Vec<Object>) -> Object;
+
 pub struct Interpreter<'a> {
   stack: Vec<Frame>,
   source: &'a Source,
+  foreign: HashMap<String, ForeignFunction>,
 }
 
 impl<'a> Interpreter<'a> {
-  pub fn new(source: &'a Source) -> Self {
+  pub fn new(source: &'a Source, foreign: HashMap<String, ForeignFunction>) -> Self {
     Interpreter {
       stack: vec!(Frame::new()),
       source,
+      foreign
     }
   }
 
@@ -153,6 +157,24 @@ impl<'a> Interpreter<'a> {
             )
           )
         }
+      },
+
+      Call(ref expression, ref args) => {
+        let mut result     = Object::Nil;
+        let mut arg_values = Vec::new();
+
+        for arg in args {
+          arg_values.push(self.evaluate_expression(arg)?)
+        }
+        
+        if let ExpressionNode::Identifier(ref name) = expression.node {
+          if let Some(func) = self.foreign.get(name) {
+
+            result = func(&arg_values)
+          }
+        }
+
+        result
       },
 
       Binary(ref a, ref op, ref b) => {
