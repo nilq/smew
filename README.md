@@ -15,17 +15,17 @@ The syntax is specifically targeted beginners and new-coming programmers.
 player -> human:
   looks:
     sprite:
-      "/res/sprites/player.png"
+      path: "/res/sprites/player.png"
 
       scale-x: 10
       scale-y: 10
 
   when-awake:
-    print "hello world"
-    move-to 100, 200 - 100
+    print("hello world")
+    move-to(100, 200 - 100)
 
   when-press-space:
-    print "ouch holy fuck"
+    print("ouch holy fuck")
 ```
 
 ### Documentation
@@ -37,7 +37,7 @@ Records are collections of other records, assignments and operations.
 ```
 foo:
   baz:
-    print "hello world"
+    print("hello world")
 ```
 
 Innovatively, records can inherit data from other records.
@@ -51,11 +51,11 @@ frog -> foo:
 #### Calls
 
 ```
-print "hello world"
+print("hello world")
 ```
 
 ```
-join "hello ", "my name is ", "bobby"
+join("hello ", "my name is ", "bobby")
 ```
 
 #### Assignments
