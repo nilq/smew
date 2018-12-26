@@ -50,12 +50,23 @@ impl<'a> Interpreter<'a> {
         self::StatementNode::Record(ref name, ref parents, ref body) => {
           self.stack.push(Frame::new());
 
+          let mut inherited_map = HashMap::new();
+
           for parent in parents {
             let parent_record = self.evaluate_expression(&parent)?;
 
-            if let Object::Record(ref record) = parent_record {
-              for (ref name, ref value) in record.map.iter() {
-                self.set_binding(name, Object::Record((**value).clone()));
+            if let Object::Record(record) = parent_record {
+              for (name, value) in record.map.iter() {
+
+                inherited_map.insert(name.clone(), value.clone());
+                
+                let value = if value.map.len() == 0 && record.content.len() == 1 {
+                  record.content[0].clone()
+                } else {
+                  Object::Record((*value).clone())
+                };
+
+                self.set_binding(name, value.clone());
               }
             } else {
               return Err(
@@ -68,16 +79,20 @@ impl<'a> Interpreter<'a> {
             }
           }
 
-          let record = self.evaluate(body)?;
+          let mut record = self.evaluate(body)?;
 
-          map.insert(name.to_owned(), record.clone());
+          record.map.extend(inherited_map);
+
+          let value = if record.map.len() == 0 && record.content.len() == 1 {
+            record.content[0].clone()
+          } else {
+            Object::Record(record.clone())
+          };
+
+          map.insert(name.to_owned(), record);
           self.stack.pop();
 
-          if record.map.len() == 0 && record.content.len() == 1 {
-            self.set_binding(name, record.content[0].clone());
-          } else {
-            self.set_binding(name, Object::Record(record));
-          }
+          self.set_binding(name, value);          
         },
 
         Assignment(ref name, ref right) => {
@@ -245,13 +260,6 @@ impl<'a> Interpreter<'a> {
 
 
   fn set_binding(&mut self, name: &String, value: Object) {
-    use backtrace::Backtrace;
-    let bt = Backtrace::new();
-
-    if name == "width" {
-      println!("{:?}", bt);
-    }
-
     self.current_frame_mut().set_name(name, value)
   }
 

@@ -14,11 +14,11 @@ rectangle:
   width:  200
   height: 100
 
-vector2:
+vector2 -> rectangle:
   x: 100
   y: 100
 
-area: rectangle.width * rectangle.height
+area: vector2.width * vector2.height
   "#;
 
   let source = Source::from("<main>", test.lines().map(|x| x.into()).collect::<Vec<String>>());

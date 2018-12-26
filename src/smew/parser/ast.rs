@@ -38,8 +38,6 @@ pub enum ExpressionNode {
   Not(Rc<Expression>), // not
   Binary(Rc<Expression>, Operator, Rc<Expression>),
   Call(Rc<Expression>, Vec<Expression>),
-
-  Empty,
   EOF,
 }
 
